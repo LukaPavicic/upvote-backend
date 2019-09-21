@@ -52,15 +52,14 @@ class UserJoinedCommunitySerializer(serializers.ModelSerializer):
 
 class PostSerializer(serializers.ModelSerializer):
     """Serializer for posts"""
+    author = UserSerializer()
+    community = CommunitySerializer()
 
     class Meta:
-        model = Post
+        model = Post        
         fields = ('id', 'title', 'description', 'created_at', 'author', 'community')
         extra_kwargs = {
             'author': {
-                'read_only': True
-            },
-            'community': {
                 'read_only': True
             }
         }

@@ -44,15 +44,7 @@ class PostViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Set author to current user"""
-        serializer.save(user=self.request.user)
-
-    def list(self, request):
-        author_model = User.objects.all().filter(pk=request.user.id).first()
-        author = {
-            'id': author_model.id,
-            'username': author_model.username,
-        }
-        return Response({})
+        serializer.save(author=self.request.user)
 
 
 class UserJoinedCommunityViewSet(viewsets.ModelViewSet):
