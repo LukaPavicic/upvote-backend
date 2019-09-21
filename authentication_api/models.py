@@ -48,7 +48,37 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.username
     
 
+class Community(models.Model):
+    """DB Model for Community"""
+    name = models.CharField(max_length=150, unique=True)
+    description = models.TextField(default="")
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    number_of_members = models.IntegerField(default=1)
 
+    def __str__(self):
+        return self.name
+
+
+class UserJoinedCommunity(models.Model):
+    """DB Model for users joined communities"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.user.username}|{self.community.name}"
+
+
+class Post(models.Model):
+    """DB Model for Post"""
+    title = models.CharField(max_length=255)
+    description = models.TextField(default="")
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.title
 
 
 

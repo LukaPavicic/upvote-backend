@@ -4,8 +4,11 @@ from . import views
 
 router = DefaultRouter()
 router.register('users', views.UserViewSet)
+router.register('communities', views.CommunityViewSet)
+router.register('userjoinedcommunities', views.UserJoinedCommunityViewSet)
+router.register('posts', views.PostViewSet)
 
 urlpatterns = [
    path('', include(router.urls)),
-   path('login/', views.UserLoginApiView.as_view()) 
+   path('login/', views.UserLoginApiView.as_view()),   
 ]
