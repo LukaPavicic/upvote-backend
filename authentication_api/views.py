@@ -10,6 +10,7 @@ from rest_framework.authtoken.views import ObtainAuthToken
 from . import permissions
 from rest_framework.settings import api_settings
 from django.db.models import Case, When
+from django.shortcuts import get_object_or_404
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -19,10 +20,40 @@ class UserViewSet(viewsets.ModelViewSet):
     authentication_classes = (TokenAuthentication,)
     permission_classes = (permissions.UpdateOwnProfile,)
 
+    def retrieve(self, request, *args, **kwargs):
+        """Get all necessary user data"""
+        queryset = User.objects.all()
+        user = get_object_or_404(queryset, pk=kwargs['pk'])
+        serializer = serializers.UserSerializer(user)
+        user_posts = serializers.PostSerializer(Post.objects.all(), many=True)
+        final_user_posts = []
+        for i in range(0, len(user_posts.data)):
+            if(user_posts.data[i]["author"]["id"] == user.id):
+                final_user_posts.append(user_posts.data[i])
+
+        return Response({'user_info': serializer.data, 'user_posts': final_user_posts})
+
 
 class UserLoginApiView(ObtainAuthToken):
     """Handle creating user authentication tokens"""
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES
+
+
+class CurrentUserApiView(APIView):
+    """Get current user data"""
+    authentication_classes = (TokenAuthentication,)
+
+    def get(self, request):
+        return Response({'user_id': request.user.id})
+
+
+# class UserCreatedPosts(APIView):
+#     """Get user created posts"""
+#     authentication_classes = (TokenAuthentication,)
+
+#     def get(self, request):
+#         """"""
+
 
 
 class CommunityViewSet(viewsets.ModelViewSet):

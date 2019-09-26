@@ -52,8 +52,8 @@ class UserJoinedCommunitySerializer(serializers.ModelSerializer):
 
 class PostSerializer(serializers.ModelSerializer):
     """Serializer for posts"""
-    author = UserSerializer()
-    community = CommunitySerializer()
+    # author = UserSerializer()
+    # community = CommunitySerializer()
 
     class Meta:
         model = Post        
@@ -63,3 +63,9 @@ class PostSerializer(serializers.ModelSerializer):
                 'read_only': True
             }
         }
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['author'] = UserSerializer(instance.author).data
+        representation['community'] = CommunitySerializer(instance.community).data
+        return representation

@@ -10,5 +10,6 @@ router.register('posts', views.PostViewSet)
 
 urlpatterns = [
    path('', include(router.urls)),
-   path('login/', views.UserLoginApiView.as_view()),   
+   path('login/', views.UserLoginApiView.as_view()), 
+   path('getcurrentuserid/', views.CurrentUserApiView.as_view()),   
 ]
