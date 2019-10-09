@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Community, UserJoinedCommunity, Post
+from .models import User, Community, UserJoinedCommunity, Post, Comment
 
 class UserSerializer(serializers.ModelSerializer):
     """User model serializer"""
@@ -10,7 +10,7 @@ class UserSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'password': {
                 'write_only': True,
-                'style': {'input': 'password'}
+                'style': {'input': 'password'},                
             }
         }
 
@@ -43,17 +43,15 @@ class UserJoinedCommunitySerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'user': {
                 'read_only': True
-            },
-            'community': {
-                'read_only': True
-            }
+            },            
         }
 
+    def create(self, validated_data):
+        return UserJoinedCommunity.objects.create(**validated_data)
+        
 
 class PostSerializer(serializers.ModelSerializer):
-    """Serializer for posts"""
-    # author = UserSerializer()
-    # community = CommunitySerializer()
+    """Serializer for posts"""        
 
     class Meta:
         model = Post        
@@ -63,9 +61,28 @@ class PostSerializer(serializers.ModelSerializer):
                 'read_only': True
             }
         }
+        
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         representation['author'] = UserSerializer(instance.author).data
         representation['community'] = CommunitySerializer(instance.community).data
+        return representation
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    """Serializer for comments"""
+
+    class Meta:
+        model = Comment
+        fields = ('id', 'content', 'author', 'created_at', 'post')
+        extra_kwargs = {
+            'author': {
+                'read_only': True
+            }
+        }
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['author'] = UserSerializer(instance.author).data
         return representation

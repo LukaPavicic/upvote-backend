@@ -3,7 +3,7 @@ from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
-from .models import User, Community, UserJoinedCommunity, Post
+from .models import User, Community, UserJoinedCommunity, Post, Comment
 from . import serializers
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.views import ObtainAuthToken
@@ -64,7 +64,7 @@ class CommunityViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Set created_by to current user"""
-        serializer.save(created_by=self.request.user)
+        serializer.save(created_by=self.request.user)        
 
 
 class PostViewSet(viewsets.ModelViewSet):
@@ -73,9 +73,26 @@ class PostViewSet(viewsets.ModelViewSet):
     authentication_classes = (TokenAuthentication,)
     queryset = Post.objects.all()
 
+    def retrieve(self, request, *args, **kwargs):        
+        """Get all posts"""
+        post = get_object_or_404(self.queryset, pk=kwargs['pk'])
+        serializer = serializers.PostSerializer(post)
+        post_comments = post.comment_set.all()
+
+        return Response({'post_data': serializer.data, 'post_comments': post_comments})
+
     def perform_create(self, serializer):
         """Set author to current user"""
-        serializer.save(author=self.request.user)
+        serializer.save(author=self.request.user)     
+
+
+class CommentViewSet(viewsets.ModelViewSet):
+    serializer_class = serializers.CommentSerializer
+    authentication_classes = (TokenAuthentication,)
+    queryset = Comment.objects.all() 
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)  
 
 
 class UserJoinedCommunityViewSet(viewsets.ModelViewSet):
@@ -103,5 +120,9 @@ class UserJoinedCommunityViewSet(viewsets.ModelViewSet):
         }        
 
         return Response(context)
+
+    def perform_create(self, serializer):
+        """Add user to userjoinedcommunities"""
+        serializer.save(user=self.request.user)
         
 

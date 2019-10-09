@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin
 from django.utils import timezone
+from django.db.models import UniqueConstraint
 
 
 class UserManager(BaseUserManager):
@@ -65,6 +66,11 @@ class UserJoinedCommunity(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
 
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['user', 'community'], name="user-joined-community")
+        ]
+
     def __str__(self):
         return f"{self.user.username}|{self.community.name}"
 
@@ -72,7 +78,7 @@ class UserJoinedCommunity(models.Model):
 class Post(models.Model):
     """DB Model for Post"""
     title = models.CharField(max_length=255)
-    description = models.TextField(default="")
+    description = models.TextField(default="", blank=True, null=True)
     author = models.ForeignKey(User, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
@@ -80,5 +86,15 @@ class Post(models.Model):
     def __str__(self):
         return self.title
 
+
+class Comment(models.Model):
+    """DB model for Comments"""
+    content = models.TextField(blank=False, null=False)
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.content
 
 
