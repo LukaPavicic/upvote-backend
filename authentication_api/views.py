@@ -75,11 +75,15 @@ class PostViewSet(viewsets.ModelViewSet):
 
     def retrieve(self, request, *args, **kwargs):        
         """Get all posts"""
-        post = get_object_or_404(self.queryset, pk=kwargs['pk'])
+        # post = get_object_or_404(self.queryset, pk=kwargs['pk'])
+        try:
+            post = Post.objects.get(pk=kwargs['pk'])
+        except Post.DoesNotExist:
+            return Response({'error_message': 'Post not found'}, status=404)
         serializer = serializers.PostSerializer(post)
-        post_comments = post.comment_set.all()
+        post_comments = post.comment_set.all().values()
 
-        return Response({'post_data': serializer.data, 'post_comments': post_comments})
+        return Response({'post_data': serializer.data, 'post_comments': list(post_comments)})
 
     def perform_create(self, serializer):
         """Set author to current user"""

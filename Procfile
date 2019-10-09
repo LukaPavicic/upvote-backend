@@ -1,0 +1,1 @@
+web: gunicorn upvote_backend.wsgi --log-file -
