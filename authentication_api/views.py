@@ -11,6 +11,7 @@ from . import permissions
 from rest_framework.settings import api_settings
 from django.db.models import Case, When
 from django.shortcuts import get_object_or_404
+from django.db import IntegrityError
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -62,6 +63,18 @@ class CommunityViewSet(viewsets.ModelViewSet):
     queryset = Community.objects.all()
     authentication_classes = (TokenAuthentication,)
 
+    def retrieve(self, request, *args, **kwargs):
+        """Get community data"""
+        try:
+            community = Community.objects.get(pk=kwargs['pk'])
+        except Community.DoesNotExist:
+            return Response({'error_message': 'Community not found'}, status=404)
+
+        serializer = serializers.CommunitySerializer(community)
+        community_posts = serializers.PostSerializer(community.post_set.all(), many=True)
+
+        return Response({'community_data': serializer.data, 'community_posts': community_posts.data})
+
     def perform_create(self, serializer):
         """Set created_by to current user"""
         serializer.save(created_by=self.request.user)        
@@ -81,9 +94,9 @@ class PostViewSet(viewsets.ModelViewSet):
         except Post.DoesNotExist:
             return Response({'error_message': 'Post not found'}, status=404)
         serializer = serializers.PostSerializer(post)
-        post_comments = post.comment_set.all().values()
+        post_comments = serializers.CommentSerializer(post.comment_set.all(), many=True)
 
-        return Response({'post_data': serializer.data, 'post_comments': list(post_comments)})
+        return Response({'post_data': serializer.data, 'post_comments': post_comments.data})
 
     def perform_create(self, serializer):
         """Set author to current user"""
@@ -124,6 +137,12 @@ class UserJoinedCommunityViewSet(viewsets.ModelViewSet):
         }        
 
         return Response(context)
+
+    def create(self, request, *args, **kwargs):
+        try:            
+            return super().create(request, *args, **kwargs)
+        except IntegrityError:
+            return Response({'error_message': 'You already joined this community'}, status=400)
 
     def perform_create(self, serializer):
         """Add user to userjoinedcommunities"""
