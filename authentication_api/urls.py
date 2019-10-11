@@ -8,6 +8,7 @@ router.register('communities', views.CommunityViewSet)
 router.register('userjoinedcommunities', views.UserJoinedCommunityViewSet)
 router.register('posts', views.PostViewSet)
 router.register('comments', views.CommentViewSet)
+router.register('upvote', views.UpvoteViewSet)
 
 urlpatterns = [
    path('', include(router.urls)),

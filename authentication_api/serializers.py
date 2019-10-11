@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import User, Community, UserJoinedCommunity, Post, Comment
+from .models import User, Community, UserJoinedCommunity, Post, Comment, Upvote
+from rest_framework.fields import CurrentUserDefault
 
 class UserSerializer(serializers.ModelSerializer):
     """User model serializer"""
@@ -51,11 +52,25 @@ class UserJoinedCommunitySerializer(serializers.ModelSerializer):
         
 
 class PostSerializer(serializers.ModelSerializer):
-    """Serializer for posts"""        
+    """Serializer for posts"""  
+
+    post_upvotes = serializers.SerializerMethodField('post_upvotes_field')
+    has_user_upvoted = serializers.SerializerMethodField('has_user_upvoted_field')
+
+    def post_upvotes_field(self, obj):        
+        return len(obj.upvote_set.all())
+
+    def has_user_upvoted_field(self, obj):
+        user = self.context['request'].user
+        if Upvote.objects.filter(user=user, post=obj.id).exists():
+            return 1
+        else:
+            return 0
+        
 
     class Meta:
         model = Post        
-        fields = ('id', 'title', 'description', 'created_at', 'author', 'community')
+        fields = ('id', 'title', 'description', 'created_at', 'author', 'community', 'post_upvotes', 'has_user_upvoted')
         extra_kwargs = {
             'author': {
                 'read_only': True
@@ -65,8 +80,8 @@ class PostSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        representation['author'] = UserSerializer(instance.author).data
-        representation['community'] = CommunitySerializer(instance.community).data
+        representation['author'] = UserSerializer(instance.author, context=self.context).data
+        representation['community'] = CommunitySerializer(instance.community, context=self.context).data
         return representation
 
 
@@ -86,3 +101,16 @@ class CommentSerializer(serializers.ModelSerializer):
         representation = super().to_representation(instance)
         representation['author'] = UserSerializer(instance.author).data
         return representation
+
+
+class UpvoteSerializer(serializers.ModelSerializer):
+    """Serializer for upvotes"""
+
+    class Meta:
+        model = Upvote
+        fields = ('id', 'user', 'post')
+        extra_kwargs = {
+            'user': {
+                'read_only': True
+            }
+        }

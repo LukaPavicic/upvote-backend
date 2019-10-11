@@ -98,3 +98,16 @@ class Comment(models.Model):
         return self.content
 
 
+class Upvote(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['user', 'post'], name="user-upvoted-post")
+        ]
+
+    
+    def __str__(self):
+        return f"{self.user.username}|{self.post.title}"
+

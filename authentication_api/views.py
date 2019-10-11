@@ -3,7 +3,7 @@ from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
-from .models import User, Community, UserJoinedCommunity, Post, Comment
+from .models import User, Community, UserJoinedCommunity, Post, Comment, Upvote
 from . import serializers
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.views import ObtainAuthToken
@@ -26,7 +26,7 @@ class UserViewSet(viewsets.ModelViewSet):
         queryset = User.objects.all()
         user = get_object_or_404(queryset, pk=kwargs['pk'])
         serializer = serializers.UserSerializer(user)
-        user_posts = serializers.PostSerializer(Post.objects.all(), many=True)
+        user_posts = serializers.PostSerializer(Post.objects.all(), many=True, context={'request': request})
         final_user_posts = []
         for i in range(0, len(user_posts.data)):
             if(user_posts.data[i]["author"]["id"] == user.id):
@@ -48,15 +48,6 @@ class CurrentUserApiView(APIView):
         return Response({'user_id': request.user.id})
 
 
-# class UserCreatedPosts(APIView):
-#     """Get user created posts"""
-#     authentication_classes = (TokenAuthentication,)
-
-#     def get(self, request):
-#         """"""
-
-
-
 class CommunityViewSet(viewsets.ModelViewSet):
     """Handle CRUD for Communities"""
     serializer_class = serializers.CommunitySerializer
@@ -71,13 +62,31 @@ class CommunityViewSet(viewsets.ModelViewSet):
             return Response({'error_message': 'Community not found'}, status=404)
 
         serializer = serializers.CommunitySerializer(community)
-        community_posts = serializers.PostSerializer(community.post_set.all(), many=True)
+        community_posts = serializers.PostSerializer(community.post_set.all(), many=True, context={'request': request})
 
         return Response({'community_data': serializer.data, 'community_posts': community_posts.data})
 
+
     def perform_create(self, serializer):
         """Set created_by to current user"""
-        serializer.save(created_by=self.request.user)        
+        serializer.save(created_by=self.request.user)  
+
+
+class UpvoteViewSet(viewsets.ModelViewSet):
+    """ViewSet for Upvote model"""
+    queryset = Upvote.objects.all()   
+    authentication_classes = (TokenAuthentication,)
+    serializer_class = serializers.UpvoteSerializer   
+
+    def create(self, request, *args, **kwargs):
+        if Upvote.objects.filter(user=request.user.id, post=request.data['post']).exists():
+            Upvote.objects.filter(user=request.user.id, post=request.data['post']).first().delete()
+            return Response({'message': 'Upvote removed'}, status=200)
+        else:
+            return super().create(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 
 class PostViewSet(viewsets.ModelViewSet):
@@ -93,14 +102,14 @@ class PostViewSet(viewsets.ModelViewSet):
             post = Post.objects.get(pk=kwargs['pk'])
         except Post.DoesNotExist:
             return Response({'error_message': 'Post not found'}, status=404)
-        serializer = serializers.PostSerializer(post)
+        serializer = serializers.PostSerializer(post, context={'request': request})
         post_comments = serializers.CommentSerializer(post.comment_set.all(), many=True)
 
         return Response({'post_data': serializer.data, 'post_comments': post_comments.data})
 
     def perform_create(self, serializer):
         """Set author to current user"""
-        serializer.save(author=self.request.user)     
+        serializer.save(author=self.request.user)  
 
 
 class CommentViewSet(viewsets.ModelViewSet):
