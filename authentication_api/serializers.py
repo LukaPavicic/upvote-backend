@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Community, UserJoinedCommunity, Post, Comment, Upvote
+from .models import User, Community, UserJoinedCommunity, Post, Comment, Upvote, Save
 from rest_framework.fields import CurrentUserDefault
 
 class UserSerializer(serializers.ModelSerializer):
@@ -7,7 +7,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'email', 'username', 'password', 'upvotes', 'created_at')
+        fields = ('id', 'email', 'username', 'password', 'upvotes', 'created_at', 'profile_image')
         extra_kwargs = {
             'password': {
                 'write_only': True,
@@ -25,9 +25,18 @@ class UserSerializer(serializers.ModelSerializer):
 class CommunitySerializer(serializers.ModelSerializer):
     """Community model serializer"""
 
+    has_user_joined = serializers.SerializerMethodField('has_user_joined_field')
+
+    def has_user_joined_field(self, obj):
+        """Check if user joined current community"""
+        if UserJoinedCommunity.objects.filter(user=self.context['request'].user, community=obj.id).exists():
+            return 1
+        else:
+            return 0
+
     class Meta:
         model = Community
-        fields = ('id', 'name', 'description', 'created_by', 'created_at', 'number_of_members')
+        fields = ('id', 'name', 'description', 'created_by', 'created_at', 'number_of_members', 'has_user_joined', 'community_image')
         extra_kwargs = {
             'created_by': {
                 'read_only': True
@@ -56,9 +65,17 @@ class PostSerializer(serializers.ModelSerializer):
 
     post_upvotes = serializers.SerializerMethodField('post_upvotes_field')
     has_user_upvoted = serializers.SerializerMethodField('has_user_upvoted_field')
+    has_user_saved = serializers.SerializerMethodField('has_user_saved_field')
 
     def post_upvotes_field(self, obj):        
         return len(obj.upvote_set.all())
+
+    def has_user_saved_field(self, obj):
+        user = self.context['request'].user
+        if Save.objects.filter(user=user, post=obj.id).exists():
+            return 1
+        else:
+            return 0
 
     def has_user_upvoted_field(self, obj):
         user = self.context['request'].user
@@ -70,7 +87,7 @@ class PostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Post        
-        fields = ('id', 'title', 'description', 'created_at', 'author', 'community', 'post_upvotes', 'has_user_upvoted')
+        fields = ('id', 'title', 'description', 'created_at', 'author', 'community', 'post_upvotes', 'has_user_upvoted', 'has_user_saved', 'post_image')
         extra_kwargs = {
             'author': {
                 'read_only': True
@@ -114,3 +131,23 @@ class UpvoteSerializer(serializers.ModelSerializer):
                 'read_only': True
             }
         }
+
+
+class SaveSerializer(serializers.ModelSerializer):
+    """Serializer for user saved posts"""
+
+    class Meta:
+        model = Save
+        fields = ('id', 'user', 'post')
+        extra_kwargs = {
+            'user': {
+                'read_only': True
+            }
+        }
+
+    
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['post'] = PostSerializer(instance.post, context=self.context).data
+        return representation
+        

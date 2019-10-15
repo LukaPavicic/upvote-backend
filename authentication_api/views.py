@@ -3,7 +3,7 @@ from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
-from .models import User, Community, UserJoinedCommunity, Post, Comment, Upvote
+from .models import User, Community, UserJoinedCommunity, Post, Comment, Upvote, Save
 from . import serializers
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.views import ObtainAuthToken
@@ -12,6 +12,7 @@ from rest_framework.settings import api_settings
 from django.db.models import Case, When
 from django.shortcuts import get_object_or_404
 from django.db import IntegrityError
+from rest_framework.parsers import FileUploadParser
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -48,11 +49,20 @@ class CurrentUserApiView(APIView):
         return Response({'user_id': request.user.id})
 
 
+class UserRelevantPosts(APIView):
+    authentication_classes = (TokenAuthentication,)
+
+    def get(self, request):
+        user_relevant_posts = "?"
+        return Response({'posts': user_relevant_posts}, status=200)
+
+
 class CommunityViewSet(viewsets.ModelViewSet):
     """Handle CRUD for Communities"""
     serializer_class = serializers.CommunitySerializer
     queryset = Community.objects.all()
     authentication_classes = (TokenAuthentication,)
+    parser_class = (FileUploadParser,)
 
     def retrieve(self, request, *args, **kwargs):
         """Get community data"""
@@ -61,7 +71,7 @@ class CommunityViewSet(viewsets.ModelViewSet):
         except Community.DoesNotExist:
             return Response({'error_message': 'Community not found'}, status=404)
 
-        serializer = serializers.CommunitySerializer(community)
+        serializer = serializers.CommunitySerializer(community, context={'request': request})
         community_posts = serializers.PostSerializer(community.post_set.all(), many=True, context={'request': request})
 
         return Response({'community_data': serializer.data, 'community_posts': community_posts.data})
@@ -121,6 +131,28 @@ class CommentViewSet(viewsets.ModelViewSet):
         serializer.save(author=self.request.user)  
 
 
+class SaveViewSet(viewsets.ModelViewSet):
+    """ViewSet for user saved posts"""
+    authentication_classes = (TokenAuthentication,)
+    queryset = Save.objects.all()
+    serializer_class = serializers.SaveSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        if Save.objects.filter(user=request.user, post=request.data['post']).exists():
+            Save.objects.filter(user=request.user, post=request.data['post']).delete()
+            return Response({'message': 'Save removed'}, status=200)
+        else:
+            return super().create(request, *args, **kwargs)
+
+    def list(self, request):
+        user = User.objects.get(pk=request.user.id)
+        user_saved_posts = serializers.SaveSerializer(user.save_set.all(), many=True, context={'request': request})
+        return Response({'saved_posts': user_saved_posts.data}, status=200)
+
+
 class UserJoinedCommunityViewSet(viewsets.ModelViewSet):
     """Handle CRUD for User joined communities"""
 
@@ -151,7 +183,15 @@ class UserJoinedCommunityViewSet(viewsets.ModelViewSet):
         try:            
             return super().create(request, *args, **kwargs)
         except IntegrityError:
-            return Response({'error_message': 'You already joined this community'}, status=400)
+            UserJoinedCommunity.objects.filter(user=request.user.id, community=request.data['community']).first().delete()
+            return Response({'message': 'Left the community'}, status=200)
+
+    # def create(self, request, *args, **kwargs):
+    #     if UserJoinedCommunity.objects.filter(user=request.user.id, community=request.data['community']).exists():
+    #         UserJoinedCommunity.objects.filter(user=request.user.id, community=request.data['community']).first().delete()
+    #         return Response({'message': 'Left the community'}, status=200)
+    #     else:
+    #         return super().create(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         """Add user to userjoinedcommunities"""

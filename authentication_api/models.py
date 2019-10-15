@@ -39,6 +39,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     upvotes = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    profile_image = models.FileField(blank=False, null=False, default="/default-user-img.png")
 
     objects = UserManager()
 
@@ -56,6 +57,7 @@ class Community(models.Model):
     created_by = models.ForeignKey(User, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     number_of_members = models.IntegerField(default=1)
+    community_image = models.FileField(blank=False, null=False, default="", upload_to="")
 
     def __str__(self):
         return self.name
@@ -82,6 +84,7 @@ class Post(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    post_image = models.FileField(blank=False, null=False, default="")
 
     def __str__(self):
         return self.title
@@ -108,6 +111,19 @@ class Upvote(models.Model):
         ]
 
     
+    def __str__(self):
+        return f"{self.user.username}|{self.post.title}"
+
+
+class Save(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['user', 'post'], name="user-saved-post")
+        ]
+
     def __str__(self):
         return f"{self.user.username}|{self.post.title}"
 
