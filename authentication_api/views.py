@@ -33,7 +33,7 @@ class UserViewSet(viewsets.ModelViewSet):
             if(user_posts.data[i]["author"]["id"] == user.id):
                 final_user_posts.append(user_posts.data[i])
 
-        return Response({'user_info': serializer.data, 'user_posts': final_user_posts})
+        return Response({'user_info': serializer.data, 'user_posts': final_user_posts}, status=status.HTTP_200_OK)
 
 
 class UserLoginApiView(ObtainAuthToken):
@@ -46,7 +46,7 @@ class CurrentUserApiView(APIView):
     authentication_classes = (TokenAuthentication,)
 
     def get(self, request):
-        return Response({'user_id': request.user.id})
+        return Response({'user_id': request.user.id}, status=status.HTTP_200_OK)
 
 
 class UserRelevantPosts(APIView):
@@ -54,7 +54,7 @@ class UserRelevantPosts(APIView):
 
     def get(self, request):
         user_relevant_posts = "?"
-        return Response({'posts': user_relevant_posts}, status=200)
+        return Response({'posts': user_relevant_posts}, status=status.HTTP_200_OK)
 
 
 class CommunityViewSet(viewsets.ModelViewSet):
@@ -69,12 +69,12 @@ class CommunityViewSet(viewsets.ModelViewSet):
         try:
             community = Community.objects.get(pk=kwargs['pk'])
         except Community.DoesNotExist:
-            return Response({'error_message': 'Community not found'}, status=404)
+            return Response({'error_message': 'Community not found'}, status=status.HTTP_404_NOT_FOUND)
 
         serializer = serializers.CommunitySerializer(community, context={'request': request})
         community_posts = serializers.PostSerializer(community.post_set.all(), many=True, context={'request': request})
 
-        return Response({'community_data': serializer.data, 'community_posts': community_posts.data})
+        return Response({'community_data': serializer.data, 'community_posts': community_posts.data}, status=status.HTTP_200_OK)
 
 
     def perform_create(self, serializer):
@@ -91,7 +91,7 @@ class UpvoteViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         if Upvote.objects.filter(user=request.user.id, post=request.data['post']).exists():
             Upvote.objects.filter(user=request.user.id, post=request.data['post']).first().delete()
-            return Response({'message': 'Upvote removed'}, status=200)
+            return Response({'message': 'Upvote removed'}, status=status.HTTP_200_OK)
         else:
             return super().create(request, *args, **kwargs)
 
@@ -104,6 +104,7 @@ class PostViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.PostSerializer
     authentication_classes = (TokenAuthentication,)
     queryset = Post.objects.all()
+    permission_classes = (permissions.DeleteOwnPost,)
 
     def retrieve(self, request, *args, **kwargs):        
         """Get all posts"""
@@ -111,11 +112,11 @@ class PostViewSet(viewsets.ModelViewSet):
         try:
             post = Post.objects.get(pk=kwargs['pk'])
         except Post.DoesNotExist:
-            return Response({'error_message': 'Post not found'}, status=404)
+            return Response({'error_message': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
         serializer = serializers.PostSerializer(post, context={'request': request})
         post_comments = serializers.CommentSerializer(post.comment_set.all(), many=True)
 
-        return Response({'post_data': serializer.data, 'post_comments': post_comments.data})
+        return Response({'post_data': serializer.data, 'post_comments': post_comments.data}, status=status.HTTP_200_OK)
 
     def perform_create(self, serializer):
         """Set author to current user"""
@@ -126,6 +127,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.CommentSerializer
     authentication_classes = (TokenAuthentication,)
     queryset = Comment.objects.all() 
+    permission_classes = (permissions.DeleteOwnComment,)
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)  
@@ -143,14 +145,14 @@ class SaveViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         if Save.objects.filter(user=request.user, post=request.data['post']).exists():
             Save.objects.filter(user=request.user, post=request.data['post']).delete()
-            return Response({'message': 'Save removed'}, status=200)
+            return Response({'message': 'Save removed'}, status=status.HTTP_200_OK)
         else:
             return super().create(request, *args, **kwargs)
 
     def list(self, request):
         user = User.objects.get(pk=request.user.id)
         user_saved_posts = serializers.SaveSerializer(user.save_set.all(), many=True, context={'request': request})
-        return Response({'saved_posts': user_saved_posts.data}, status=200)
+        return Response({'saved_posts': user_saved_posts.data}, status=status.HTTP_200_OK)
 
 
 class UserJoinedCommunityViewSet(viewsets.ModelViewSet):
@@ -184,7 +186,7 @@ class UserJoinedCommunityViewSet(viewsets.ModelViewSet):
             return super().create(request, *args, **kwargs)
         except IntegrityError:
             UserJoinedCommunity.objects.filter(user=request.user.id, community=request.data['community']).first().delete()
-            return Response({'message': 'Left the community'}, status=200)
+            return Response({'message': 'Left the community'}, status=status.HTTP_200_OK)
 
     # def create(self, request, *args, **kwargs):
     #     if UserJoinedCommunity.objects.filter(user=request.user.id, community=request.data['community']).exists():
@@ -196,5 +198,26 @@ class UserJoinedCommunityViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Add user to userjoinedcommunities"""
         serializer.save(user=self.request.user)
+        
+
+class UserRelevantPosts(APIView):
+    """Get posts based on user joined communities"""
+    authentication_classes = (TokenAuthentication,)
+
+    def get(self, request):
+        """Get method"""
+        user = request.user
+        joined_communities = []
+        posts = []
+
+        for item in UserJoinedCommunity.objects.filter(user=user).all():
+            joined_communities.append(item.community.id)
+
+        for post in Post.objects.all():
+            if post.community.id in joined_communities:                
+                posts.append(post)
+
+        return Response({'posts': serializers.PostSerializer(posts, many=True, context={'request': request}).data}, status=status.HTTP_200_OK)
+
         
 
