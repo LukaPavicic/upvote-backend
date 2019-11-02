@@ -58,7 +58,12 @@ class UserJoinedCommunitySerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         return UserJoinedCommunity.objects.create(**validated_data)
-        
+
+    # def to_representation(self, instance):
+    #     representation = super().to_representation(instance)
+    #     representation['community'] = CommentSerializer(instance.community, context=self.context).data
+    #     return representation
+
 
 class PostSerializer(serializers.ModelSerializer):
     """Serializer for posts"""  
