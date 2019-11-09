@@ -49,12 +49,12 @@ class CurrentUserApiView(APIView):
         return Response({'user_id': request.user.id}, status=status.HTTP_200_OK)
 
 
-class UserRelevantPosts(APIView):
-    authentication_classes = (TokenAuthentication,)
+# class UserRelevantPosts(APIView):
+#     authentication_classes = (TokenAuthentication,)
 
-    def get(self, request):
-        user_relevant_posts = "?"
-        return Response({'posts': user_relevant_posts}, status=status.HTTP_200_OK)
+#     def get(self, request):
+#         user_relevant_posts = "?"
+#         return Response({'posts': user_relevant_posts}, status=status.HTTP_200_OK)
 
 
 class CommunityViewSet(viewsets.ModelViewSet):
@@ -170,10 +170,8 @@ class UserJoinedCommunityViewSet(viewsets.ModelViewSet):
 
         for i in range(0,len(joined_communites_ids)):
             com_pk_list.append(joined_communites_ids[i]['community'])
-
-        # preserved = Case(*[When(pk=pk, tehn=pos) for pos, pk in enumerate(com_pk_list)])
-        queryset = Community.objects.filter(pk__in=com_pk_list).values('id', 'name')
-
+        
+        queryset = Community.objects.filter(pk__in=com_pk_list).values('id', 'name', 'community_image')
 
         context = {
             'joined_communities': list(queryset)
