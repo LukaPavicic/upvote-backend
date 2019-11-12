@@ -13,6 +13,7 @@ from django.db.models import Case, When
 from django.shortcuts import get_object_or_404
 from django.db import IntegrityError
 from rest_framework.parsers import FileUploadParser
+from rest_framework import filters
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -63,6 +64,8 @@ class CommunityViewSet(viewsets.ModelViewSet):
     queryset = Community.objects.all()
     authentication_classes = (TokenAuthentication,)
     parser_class = (FileUploadParser,)
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
 
     def retrieve(self, request, *args, **kwargs):
         """Get community data"""
