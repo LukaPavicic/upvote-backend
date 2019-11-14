@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     'authentication_api',
     'rest_framework',
     'rest_framework.authtoken',
-    'corsheaders',
+    'corsheaders',    
 ]
 
 MIDDLEWARE = [
@@ -139,3 +139,9 @@ CSRF_COOKIE_SECURE              = False
 SECURE_HSTS_SECONDS             = None
 SECURE_HSTS_INCLUDE_SUBDOMAINS  = False
 SECURE_FRAME_DENY               = False
+
+BACKBLAZEB2_ACCOUNT_ID = '392ceca83db1'
+BACKBLAZEB2_APP_KEY = '0021aeae17c39184494983162ca3ac3b1d9adc1c0a'
+BACKBLAZEB2_BUCKET_NAME = 'UpvoteImages'
+
+DEFAULT_FILE_STORAGE = 'b2_storage.B2Storage'

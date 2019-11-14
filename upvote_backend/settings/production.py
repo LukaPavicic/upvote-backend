@@ -40,7 +40,7 @@ INSTALLED_APPS = [
     'authentication_api',
     'rest_framework',
     'rest_framework.authtoken',
-    'corsheaders',
+    'corsheaders',    
 ]
 
 MIDDLEWARE = [
@@ -143,3 +143,10 @@ import dj_database_url
 db_from_env = dj_database_url.config()
 DATABASES['default'].update(db_from_env)
 DATABASES['default']['CONN_MAX_AGE'] = 500
+
+
+BACKBLAZEB2_ACCOUNT_ID = '392ceca83db1'
+BACKBLAZEB2_APP_KEY = '0021aeae17c39184494983162ca3ac3b1d9adc1c0a'
+BACKBLAZEB2_BUCKET_NAME = 'UpvoteImages'
+
+DEFAULT_FILE_STORAGE = 'b2_storage.B2Storage'
