@@ -12,14 +12,10 @@ class UpdateOwnProfile(permissions.BasePermission):
 
 
 class DeleteOwnComment(permissions.BasePermission):
-    """Allow user to delete only their own comments"""
-
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
             return True
-        
         comment = Comment.objects.filter(pk=obj.id).first()
-
         if request.user == comment.author:
             return Comment.objects.filter(pk=obj.id).delete()
 
